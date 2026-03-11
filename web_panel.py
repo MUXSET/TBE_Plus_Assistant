@@ -278,7 +278,7 @@ def api_action():
             _gui_app.after(0, _gui_app.run_export_report_async)
             return jsonify({"ok": True, "msg": "报告导出已触发"})
         elif action == "token":
-            threading.Thread(target=_gui_app._run_token_flow, daemon=True).start()
+            _gui_app._run_token_flow_async()
             return jsonify({"ok": True, "msg": "Token 刷新已触发"})
         elif action == "stop":
             _gui_app.scan_stop_event.set()

@@ -9,6 +9,7 @@ dist/
 build/
 
 # Release artifacts
+TBNEWS_Liker-v*/
 TBNEWS_Liker-*.zip
 *.dmg
 

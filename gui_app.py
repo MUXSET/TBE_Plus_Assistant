@@ -544,6 +544,7 @@ class App(ctk.CTk):
         st = "disabled" if active else "normal"
         self.scan_btn.configure(state=st, text="⏳ 扫描中..." if active else "▶  开始扫描")
         self.preset_menu.configure(state=st)
+        self.account_selector.configure(state=st)
         self.export_btn = None  # handled in sidebar
         if active:
             self._show_stop()
@@ -662,6 +663,11 @@ class App(ctk.CTk):
 
     def _run_token_flow_async(self):
         """Asynchronously triggers the token update to prevent UI freeze."""
+        if self.auto_mode_running or (hasattr(self, 'scan_thread') and self.scan_thread and self.scan_thread.is_alive()):
+            from tkinter import messagebox
+            messagebox.showwarning("⚠️ 操作被阻止", "后台扫描或自动挂机运行中！请先停止任务后再刷新凭据。")
+            return
+            
         logger.info("\n🔄 收到手动刷新凭据请求...")
         self.after(0, lambda: self.card_token.configure(text="刷新中...", text_color="#fb923c"))
         threading.Thread(target=self._run_token_flow, daemon=True).start()
@@ -735,6 +741,11 @@ class App(ctk.CTk):
     #  设置
     # ============================================================
     def open_settings(self):
+        if self.auto_mode_running or (hasattr(self, 'scan_thread') and self.scan_thread and self.scan_thread.is_alive()):
+            from tkinter import messagebox
+            messagebox.showwarning("⚠️ 操作被阻止", "自动挂机或扫描正运行中！请先停止任务后再修改设置，以免产生数据错乱。")
+            return
+            
         dlg = ctk.CTkToplevel(self)
         dlg.title("⚙️ 设置")
         dlg.geometry("460x620")

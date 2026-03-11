@@ -1,14 +1,14 @@
-# TBE+ 阅赞助手 (TBE+ News Assistant) v2.2.0
+# TBE+ 阅赞助手 (TBE+ News Assistant) v2.2.1
 
-![版本](https://img.shields.io/badge/version-2.2.0-blue.svg) ![语言](https://img.shields.io/badge/language-Python-green.svg) ![作者](https://img.shields.io/badge/author-MUXSET-orange.svg) ![协议](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+![版本](https://img.shields.io/badge/version-2.2.1-blue.svg) ![语言](https://img.shields.io/badge/language-Python-green.svg) ![作者](https://img.shields.io/badge/author-MUXSET-orange.svg) ![协议](https://img.shields.io/badge/license-MIT-lightgrey.svg)
 
-> **🚀 v2.2.0 新体验升级！**
-> 新增启动时无感核算当月文章总数功能，以及“强制直连”选项一键绕过各类企业终端网络审计环境，实现更顺畅的挂机体验！
+> **🚀 v2.2.1 修复升级！**
+> 修复了多账号协同使用时产生的缓存污染与交叉覆盖问题，为界面增加了挂机期间的账号保护锁，保障多账号全自动值守安全。
 
 > **🌟 v2.0.0 系列史诗级更新！**
 > 全面重构的架构升级。全新 GUI 仪表板 + 手机 Web 远程控制 + 智能点赞缓存 + `pubacc_v2` 极速公众号接口全面迁移。从被封杀的旧版短脚鸡进化为真正的极速自动打卡神器。
 
-**TBE+ 阅赞助手** 是一款专为 TBEA 平台量身打造的高效自动化聚合阅读与点赞工作台。基于全新重构的底层极速抓取引擎，彻底解决账号掉线痛点。内置智能无感缓存与全天候 Session 保活机制，提供从桌面 GUI 数据大盘到移动 Web 控制端的一站式、7×24 小时真正无人值守体验。
+**TBE+ 阅赞助手** 是一款专为 TBEA 平台开发的自动化聚合阅读与点赞工具。基于无头浏览器抓取引擎，支持绕过内网终端安全审计客户端自动获取凭据，并提供从桌面 GUI 数字面板到移动端 Web 远程界面的状态监控功能。
 
 ---
 
@@ -124,6 +124,10 @@ python run.py
 ---
 
 ## 📋 版本历史
+
+### v2.2.1 (2026-03-31) — 稳定守护升级
+- 🐛 **多账号数据隔离优化**：对本地点赞缓存机制进行彻底重构，实现多账号独立的沙盒化隔离。修正在切换不同账号后，本地大盘数据存在读取交叉的历史遗留 bug。兼容老版本数组数据结构，首次联网会自动无缝归入当前操作者沙箱中。
+- 🔒 **并发安全操作锁功能实装**：为了杜绝极端情况下的并发错乱，全面重整界面生命周期，挂机扫描期间通过控件状态置灰，实现强劲的安全互斥锁。完美封堵在扫描全周期随意增删配置、变更主从账号或远程请求 Token 引发的脏数据回写风险，杜绝串号可能。
 
 ### v2.2.0 (2026-03-11) — 实用功能升级
 - 🏷️ **名称更新**：项目正式更名为「TBE+ 阅赞助手」。
