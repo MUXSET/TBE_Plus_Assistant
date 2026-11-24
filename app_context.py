@@ -27,8 +27,19 @@ def get_base_path() -> str:
     else:
         return os.path.dirname(os.path.abspath(__file__))
 
+def get_resource_path() -> str:
+    """获取打包资源目录路径（用于定位 templates 等只读资源）。
+
+    PyInstaller 打包模式: 返回 sys._MEIPASS（若存在），否则回退 BASE_PATH。
+    开发模式: 返回脚本所在目录。
+    """
+    if getattr(sys, 'frozen', False):
+        return getattr(sys, '_MEIPASS', get_base_path())
+    return os.path.dirname(os.path.abspath(__file__))
+
+
 BASE_PATH = get_base_path()
+RESOURCE_PATH = get_resource_path()
 CONFIG_FILE_PATH = os.path.join(BASE_PATH, "config.json")
-PROGRESS_FILE_PATH = os.path.join(BASE_PATH, "liker_progress.json")
 BROWSER_DATA_PATH = os.path.join(BASE_PATH, "ms-playwright")
 

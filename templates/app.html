@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ app_name }} v{{ version }}</title>
+<link rel="stylesheet" href="/static/css/app.css?v={{ version }}">
+</head>
+<body data-is-desktop="{{ 'true' if is_desktop else 'false' }}">
+
+<!-- 矢量 SVG 图标精灵 -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7.5 4.8a1.2 1.2 0 0 1 1.83-1.02l10.8 6.7a1.2 1.2 0 0 1 0 2.04l-10.8 6.7A1.2 1.2 0 0 1 7.5 18.2V4.8z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.2"/></symbol>
+  <symbol id="i-radar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67"/><path d="M12 18h.01"/><circle cx="12" cy="12" r="2"/><path d="m13.41 10.59 5.66-5.66"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-rotate-ccw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+</svg>
+
+<div class="app-shell">
+  <!-- 左侧导航栏 -->
+  <aside class="sidebar">
+    <div class="brand-lockup">
+      <div class="brand-icon"><svg class="ic"><use href="#i-bolt"/></svg></div>
+      <div class="brand-meta">
+        <div class="brand-title">{{ app_name }}</div>
+        <div class="brand-sub"><span class="ver-tag">v{{ version }}</span></div>
+      </div>
+    </div>
+
+    <nav class="nav-list" aria-label="主导航">
+      <button class="nav-item active" data-view="dashboard" onclick="App.switchView('dashboard')">
+        <svg class="ic"><use href="#i-grid"/></svg>
+        <span>总览</span>
+      </button>
+      <button class="nav-item" data-view="accounts" onclick="App.switchView('accounts')">
+        <svg class="ic"><use href="#i-users"/></svg>
+        <span>账号管理</span>
+        <span class="nav-badge" id="nav-acc-count">0</span>
+      </button>
+      <button class="nav-item" data-view="settings" onclick="App.switchView('settings')">
+        <svg class="ic"><use href="#i-sliders"/></svg>
+        <span>偏好设置</span>
+      </button>
+    </nav>
+
+    <!-- 紧凑账号卡片 + 气泡切换器 -->
+    <div class="account-widget" id="account-widget">
+      <button class="account-trigger" id="account-trigger" onclick="App.toggleAccountPopover(event)">
+        <div class="avatar" id="sidebar-avatar">--</div>
+        <div class="acc-trigger-info">
+          <div class="acc-trigger-row">
+            <span class="acc-name" id="sidebar-acc-name">未配置账号</span>
+            <span class="multi-pill" id="sidebar-multi-pill" style="display:none">多号</span>
+          </div>
+          <div class="acc-cache" id="sidebar-acc-cache">已赞缓存 0 篇</div>
+        </div>
+        <svg class="ic ic-sm acc-chevron" id="sidebar-acc-chevron"><use href="#i-chevron"/></svg>
+      </button>
+
+      <div class="account-popover" id="account-popover">
+        <div class="popover-head">切换当前账号</div>
+        <div class="popover-list" id="popover-acc-list"></div>
+        <div class="popover-foot">
+          <button class="popover-link" onclick="App.closeAccountPopover(); App.switchView('accounts')">
+            <svg class="ic ic-xs"><use href="#i-plus"/></svg> 管理或添加账号
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自动挂机主操作 -->
+    <div class="cta-block">
+      <button class="btn-cta" id="btn-auto-toggle" onclick="App.toggleAuto()">
+        <svg class="ic" id="btn-auto-icon"><use href="#i-radar"/></svg>
+        <span id="btn-auto-text">启动自动挂机</span>
+      </button>
+      <button class="btn-stop-slide" id="btn-stop-task" onclick="App.stopTask()">
+        <svg class="ic ic-sm"><use href="#i-stop"/></svg>
+        <span>停止当前任务</span>
+      </button>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <!-- 底部远程访问条 + 主题切换 -->
+    <div class="sidebar-footer">
+      <div class="remote-card" id="remote-card">
+        <div class="remote-top">
+          <div class="remote-title">
+            <svg class="ic ic-xs"><use href="#i-globe"/></svg>
+            <span>远程面板</span>
+          </div>
+          <span class="remote-state" id="remote-state"><i class="dot"></i> 运行中</span>
+        </div>
+        <div class="remote-bottom">
+          <span class="remote-addr" id="remote-addr">localhost:5050</span>
+          <div class="remote-actions">
+            <button class="icon-btn-sm" id="btn-remote-open" title="在浏览器中打开" onclick="App.openRemote()">
+              <svg class="ic ic-xs"><use href="#i-external"/></svg>
+            </button>
+            <button class="icon-btn-sm" id="btn-remote-copy" title="复制局域网地址" onclick="App.copyRemote()">
+              <svg class="ic ic-xs"><use href="#i-copy"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="theme-switch" id="theme-switch" role="radiogroup" aria-label="外观主题">
+        <div class="theme-thumb" id="theme-thumb"></div>
+        <button class="theme-opt" data-mode="System" title="跟随系统" onclick="App.setTheme('System')">
+          <svg class="ic ic-xs"><use href="#i-monitor"/></svg><span>自动</span>
+        </button>
+        <button class="theme-opt" data-mode="Dark" title="深色模式" onclick="App.setTheme('Dark')">
+          <svg class="ic ic-xs"><use href="#i-moon"/></svg><span>深色</span>
+        </button>
+        <button class="theme-opt" data-mode="Light" title="浅色模式" onclick="App.setTheme('Light')">
+          <svg class="ic ic-xs"><use href="#i-sun"/></svg><span>浅色</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 右侧主内容区 -->
+  <main class="main-area">
+    <!-- ==================== 视图 1: 总览工作台 ==================== -->
+    <section class="view active" id="view-dashboard">
+      <header class="page-header">
+        <div class="header-left">
+          <h1>工作台</h1>
+          <div class="status-badge" id="status-badge">
+            <span class="pulse-dot" id="status-dot"></span>
+            <span id="status-text">空闲待机</span>
+          </div>
+          <span class="countdown-tag" id="next-scan-tag" style="display:none"></span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-ghost" id="btn-refresh-token" onclick="App.refreshToken()">
+            <svg class="ic ic-sm"><use href="#i-refresh"/></svg>
+            <span>刷新凭据</span>
+          </button>
+          <button class="btn-ghost" id="btn-export-report" onclick="App.exportReport()">
+            <svg class="ic ic-sm"><use href="#i-download"/></svg>
+            <span>导出月报</span>
+          </button>
+          <button class="btn-report-ready" id="btn-report-ready" style="display:none" onclick="App.openOrDownloadReport()">
+            <svg class="ic ic-sm"><use href="#i-folder"/></svg>
+            <span id="btn-report-text">查看月报</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 4 张高对齐 KPI 指标卡 -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-head">
+            <span class="kpi-label">本月文章</span>
+            <span class="kpi-icon kpi-icon-blue"><svg class="ic ic-sm"><use href="#i-file-text"/></svg></span>
+          </div>
+          <div class="kpi-value" id="kpi-total">---</div>
+          <div class="kpi-sub" id="kpi-total-sub">覆盖 3 个监控频道</div>
+        </div>
+
+        <div class="kpi-card kpi-card-ring">
+          <div class="kpi-ring-left">
+            <div class="kpi-head"><span class="kpi-label">本月点赞</span></div>
+            <div class="kpi-value kpi-val-emerald" id="kpi-liked">---</div>
+            <div class="kpi-sub" id="kpi-liked-sub">待核算进度</div>
+          </div>
+          <div class="ring-wrap" title="本月点赞完成度">
+            <svg class="ring-svg" viewBox="0 0 52 52">
+              <circle class="ring-track" cx="26" cy="26" r="21"></circle>
+              <circle class="ring-fill" id="ring-progress" cx="26" cy="26" r="21" stroke-dasharray="131.95" stroke-dashoffset="131.95"></circle>
+            </svg>
+            <span class="ring-text" id="ring-pct">--</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" id="card-last-scan" title="">
+          <div class="kpi-head">
+            <span class="kpi-label">上次扫描</span>
+            <span class="kpi-icon kpi-icon-purple"><svg class="ic ic-sm"><use href="#i-clock"/></svg></span>
+          </div>
+          <div class="kpi-value" id="kpi-last">从未</div>
+          <div class="kpi-sub" id="kpi-last-sub">新赞 0 · 跳过 0</div>
+        </div>
+
+        <div class="kpi-card kpi-card-clickable" id="card-token" onclick="App.checkToken()" title="点击立即校验凭据有效性">
+          <div class="kpi-head">
+            <span class="kpi-label">凭据状态</span>
+            <span class="kpi-icon kpi-icon-amber"><svg class="ic ic-sm"><use href="#i-key"/></svg></span>
+          </div>
+          <div class="kpi-token-row">
+            <span class="status-dot-lg" id="kpi-token-dot"></span>
+            <span class="kpi-value kpi-token-val" id="kpi-token-val">检测中</span>
+          </div>
+          <div class="kpi-sub" id="kpi-token-sub">点击立即校验</div>
+        </div>
+      </div>
+
+      <!-- 扫描范围控制 + 自定义日期抽屉 + 实时进度条 -->
+      <div class="card scan-card">
+        <div class="scan-bar">
+          <div class="scan-left">
+            <span class="scan-title">扫描范围</span>
+            <div class="seg-control" id="preset-seg" role="tablist">
+              <div class="seg-slider" id="preset-slider"></div>
+              <button class="seg-btn" data-preset="today">今天</button>
+              <button class="seg-btn" data-preset="3days">最近3天</button>
+              <button class="seg-btn" data-preset="week">本周</button>
+              <button class="seg-btn active" data-preset="month">本月</button>
+              <button class="seg-btn" data-preset="last_month">上月</button>
+              <button class="seg-btn" data-preset="custom">自定义</button>
+            </div>
+          </div>
+          <button class="btn-primary-emerald" id="btn-start-scan" onclick="App.startScan()">
+            <svg class="ic ic-sm" id="btn-scan-icon"><use href="#i-play"/></svg>
+            <span id="btn-scan-text">开始扫描</span>
+          </button>
+        </div>
+
+        <!-- 自定义日期原生选择器 -->
+        <div class="scan-drawer" id="custom-date-drawer">
+          <div class="drawer-inner custom-date-row">
+            <label class="date-field">
+              <span>起始</span>
+              <input type="date" id="custom-start">
+            </label>
+            <span class="date-sep">至</span>
+            <label class="date-field">
+              <span>结束</span>
+              <input type="date" id="custom-end">
+            </label>
+            <span class="inline-err" id="custom-date-err"></span>
+          </div>
+        </div>
+
+        <!-- 实时扫描/导出进度抽屉 -->
+        <div class="scan-drawer" id="progress-drawer">
+          <div class="drawer-inner progress-inner">
+            <div class="prog-meta">
+              <span class="prog-msg" id="prog-msg">正在准备扫描...</span>
+              <span class="prog-pct" id="prog-pct">0%</span>
+            </div>
+            <div class="prog-track">
+              <div class="prog-fill" id="prog-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 结构化运行日志台 -->
+      <div class="card log-card">
+        <div class="log-header">
+          <div class="log-header-left">
+            <span class="log-title">运行动态</span>
+            <div class="filter-group" id="log-filter-group">
+              <button class="filter-pill active" data-filter="all" onclick="App.setLogFilter('all', this)">全部</button>
+              <button class="filter-pill" data-filter="liked" onclick="App.setLogFilter('liked', this)">新赞与完成</button>
+              <button class="filter-pill" data-filter="warn" onclick="App.setLogFilter('warn', this)">警告与错误</button>
+            </div>
+          </div>
+          <div class="log-header-right">
+            <div class="search-wrap">
+              <svg class="ic ic-xs search-ic"><use href="#i-search"/></svg>
+              <input type="text" id="log-search" placeholder="筛选关键词..." oninput="App.setLogQuery(this.value)">
+            </div>
+            <button class="icon-btn active" id="btn-autoscroll" title="自动滚动到底部" onclick="App.toggleAutoScroll()">
+              <svg class="ic ic-xs"><use href="#i-arrow-down"/></svg>
+            </button>
+            <button class="icon-btn" title="复制当前日志" onclick="App.copyLogs()">
+              <svg class="ic ic-xs"><use href="#i-copy"/></svg>
+            </button>
+            <button class="icon-btn desktop-only" title="打开本地日志文件" onclick="App.openLogFile()">
+              <svg class="ic ic-xs"><use href="#i-folder"/></svg>
+            </button>
+            <button class="icon-btn" title="清空当前视图" onclick="App.clearLogsView()">
+              <svg class="ic ic-xs"><use href="#i-trash"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="log-body" id="log-body">
+          <div class="log-empty">暂无运行动态</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 视图 2: 账号管理 ==================== -->
+    <section class="view" id="view-accounts">
+      <header class="page-header">
+        <div class="header-left">
+          <h1>账号管理</h1>
+          <span class="header-desc">各账号凭据、月度大盘与点赞缓存完全独立隔离</span>
+        </div>
+      </header>
+
+      <div class="scroll-page">
+        <div class="accounts-grid" id="accounts-grid"></div>
+
+        <div class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2 id="acc-form-title">添加账号 / 更新密码</h2>
+              <p class="section-sub">提交后将通过无头浏览器验证登录，验证成功自动保存凭据并设为当前账号</p>
+            </div>
+          </div>
+          <form class="acc-form" onsubmit="App.submitAccountForm(event)">
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="acc-user">工号</label>
+                <input type="text" id="acc-user" placeholder="输入 TBE+ 工号" autocomplete="username">
+              </div>
+              <div class="input-group">
+                <label for="acc-pass">密码</label>
+                <div class="pass-wrap">
+                  <input type="password" id="acc-pass" placeholder="输入登录密码" autocomplete="current-password">
+                  <button type="button" class="pass-eye" onclick="App.togglePassword('acc-pass', this)" aria-label="切换密码可见">
+                    <svg class="ic ic-xs"><use href="#i-eye"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <div class="verify-status" id="acc-verify-msg"></div>
+              <button type="submit" class="btn-primary" id="btn-acc-verify">
+                <svg class="ic ic-sm"><use href="#i-check"/></svg>
+                <span>验证并保存</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 视图 3: 偏好设置 ==================== -->
+    <section class="view" id="view-settings">
+      <header class="page-header">
+        <div class="header-left">
+          <h1>偏好设置</h1>
+          <span class="header-desc">调度频率、代理策略、目标频道与手机远程面板</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary" id="btn-save-settings" onclick="App.saveSettings()">
+            <svg class="ic ic-sm"><use href="#i-check"/></svg>
+            <span>保存设置</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="busy-banner" id="settings-busy-banner" style="display:none">
+        <svg class="ic ic-sm"><use href="#i-lock"/></svg>
+        <span>当前正在自动挂机或执行任务，请先停止任务后再保存设置变更。</span>
+      </div>
+
+      <div class="scroll-page">
+        <!-- 分组 1: 调度与自动化 -->
+        <div class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>调度周期与自动化策略</h2>
+              <p class="section-sub">控制自动挂机间隔、多账号轮询及网络直连行为</p>
+            </div>
+          </div>
+
+          <div class="form-row-2 settings-pad">
+            <div class="input-group">
+              <label for="set-scan-iv">自动扫描间隔（小时）</label>
+              <input type="number" step="0.5" min="0.1" id="set-scan-iv" value="1">
+            </div>
+            <div class="input-group">
+              <label for="set-token-iv">凭据定期刷新间隔（小时）</label>
+              <input type="number" step="0.5" min="0.5" id="set-token-iv" value="6">
+            </div>
+          </div>
+
+          <div class="toggle-list">
+            <label class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">启动时自动统计本月文章总数</div>
+                <div class="toggle-desc">应用启动或切换账号后静默核算当月大盘，若凭据过期自动续期</div>
+              </div>
+              <input type="checkbox" class="switch-input" id="set-auto-check">
+              <span class="switch-ui"></span>
+            </label>
+
+            <label class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">强制直连（绕过代理 / VPN / 终端审计）</div>
+                <div class="toggle-desc">直连目标接口与登录页，解决企业网络环境引发的连接重置或 SSL 拦截</div>
+              </div>
+              <input type="checkbox" class="switch-input" id="set-disable-proxy">
+              <span class="switch-ui"></span>
+            </label>
+
+            <label class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">多账号依次轮询挂机</div>
+                <div class="toggle-desc">启动自动挂机后，每轮扫描与会话保活将按顺序自动遍历全部已添加账号</div>
+              </div>
+              <input type="checkbox" class="switch-input" id="set-multi-auto">
+              <span class="switch-ui"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 分组 2: 目标监控频道 -->
+        <div class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>目标监控频道</h2>
+              <p class="section-sub">每次扫描将自动聚合以下频道的推送文章并去重点赞</p>
+            </div>
+            <button type="button" class="btn-ghost-sm" onclick="App.restoreDefaultChannels()">
+              <svg class="ic ic-xs"><use href="#i-rotate-ccw"/></svg>
+              <span>恢复默认</span>
+            </button>
+          </div>
+
+          <div class="channels-list" id="channels-list"></div>
+
+          <div class="channel-add-row">
+            <input type="text" id="ch-name" placeholder="频道名称">
+            <input type="text" id="ch-id" class="mono-input" placeholder="频道 ID (如 XT-xxx-xxx)">
+            <button type="button" class="btn-secondary" onclick="App.addChannel()">
+              <svg class="ic ic-xs"><use href="#i-plus"/></svg> 添加
+            </button>
+          </div>
+        </div>
+
+        <!-- 分组 3: Web 远程控制 -->
+        <div class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>Web 远程控制面板</h2>
+              <p class="section-sub">在局域网手机浏览器远程查看进度、切换账号、控制挂机与下载月报</p>
+            </div>
+          </div>
+
+          <div class="toggle-list">
+            <label class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">启用 Web 远程面板服务</div>
+                <div class="toggle-desc">关闭后仅保留本桌面端界面，不再对外监听 Web 端口</div>
+              </div>
+              <input type="checkbox" class="switch-input" id="set-web-enabled">
+              <span class="switch-ui"></span>
+            </label>
+
+            <label class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">允许局域网设备访问 (0.0.0.0)</div>
+                <div class="toggle-desc">关闭后仅限本机 localhost 访问；开启可供同网段手机远程控制</div>
+              </div>
+              <input type="checkbox" class="switch-input" id="set-web-lan">
+              <span class="switch-ui"></span>
+            </label>
+          </div>
+
+          <div class="form-row-2 settings-pad">
+            <div class="input-group">
+              <label for="set-web-port">监听端口</label>
+              <input type="number" min="1" max="65535" id="set-web-port" value="5050">
+            </div>
+            <div class="input-group">
+              <label for="set-web-pin">访问口令 PIN（可选）</label>
+              <div class="pass-wrap">
+                <input type="password" id="set-web-pin" placeholder="留空表示免密访问">
+                <button type="button" class="pass-eye" onclick="App.togglePassword('set-web-pin', this)" aria-label="切换口令可见">
+                  <svg class="ic ic-xs"><use href="#i-eye"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 移动端底部导航栏 (<=768px) -->
+  <nav class="mobile-nav" aria-label="移动导航">
+    <button class="mnav-item active" data-view="dashboard" onclick="App.switchView('dashboard')">
+      <svg class="ic ic-sm"><use href="#i-grid"/></svg><span>总览</span>
+    </button>
+    <button class="mnav-item" data-view="accounts" onclick="App.switchView('accounts')">
+      <svg class="ic ic-sm"><use href="#i-users"/></svg><span>账号</span>
+    </button>
+    <button class="mnav-item" data-view="settings" onclick="App.switchView('settings')">
+      <svg class="ic ic-sm"><use href="#i-sliders"/></svg><span>设置</span>
+    </button>
+  </nav>
+</div>
+
+<!-- 首次欢迎引导遮罩 (0 账号时展示) -->
+<div class="overlay" id="onboarding-overlay">
+  <div class="modal-card onboarding-card">
+    <div class="onboard-logo"><svg class="ic"><use href="#i-bolt"/></svg></div>
+    <h2>欢迎使用 {{ app_name }}</h2>
+    <p class="modal-desc">添加您的首个 TBE+ 账号以开始自动阅读与点赞</p>
+    <form class="modal-form" onsubmit="App.submitOnboarding(event)">
+      <div class="input-group">
+        <label for="ob-user">工号</label>
+        <input type="text" id="ob-user" placeholder="输入工号" autocomplete="username">
+      </div>
+      <div class="input-group">
+        <label for="ob-pass">密码</label>
+        <div class="pass-wrap">
+          <input type="password" id="ob-pass" placeholder="输入密码" autocomplete="current-password">
+          <button type="button" class="pass-eye" onclick="App.togglePassword('ob-pass', this)">
+            <svg class="ic ic-xs"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="verify-status" id="ob-msg"></div>
+      <button type="submit" class="btn-cta" id="btn-ob-submit">验证并开始使用</button>
+    </form>
+  </div>
+</div>
+
+<!-- 远程 PIN 解锁遮罩 (仅未鉴权远程客户端显示) -->
+<div class="overlay" id="pin-overlay">
+  <div class="modal-card pin-card">
+    <div class="onboard-logo"><svg class="ic"><use href="#i-lock"/></svg></div>
+    <h2>远程访问验证</h2>
+    <p class="modal-desc">当前远程面板已启用访问口令保护，请输入 PIN 解锁</p>
+    <form class="modal-form" onsubmit="App.submitPin(event)">
+      <input type="password" id="pin-input" class="pin-input" placeholder="输入访问口令">
+      <div class="verify-status err" id="pin-err"></div>
+      <button type="submit" class="btn-cta">解锁进入</button>
+    </form>
+  </div>
+</div>
+
+<!-- 应用内确认弹窗 -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal-card confirm-card">
+    <h3 id="confirm-title">确认操作</h3>
+    <p class="modal-desc" id="confirm-desc"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn-ghost" onclick="App.resolveConfirm(false)">取消</button>
+      <button type="button" class="btn-danger" id="confirm-ok-btn" onclick="App.resolveConfirm(true)">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 浮动 Toast 通知栈 -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/static/js/app.js?v={{ version }}"></script>
+</body>
+</html>

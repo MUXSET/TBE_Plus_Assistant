@@ -6,26 +6,34 @@
 # =================================================================
 
 import sys
-import os
 
 block_cipher = None
 
-# 收集 CustomTkinter 主题数据（必须在 Analysis 之前）
-from PyInstaller.utils.hooks import collect_data_files
-ctk_datas = collect_data_files('customtkinter')
+# WebView 原生后端隐藏导入与前端静态资源
+if sys.platform == 'darwin':
+    platform_hiddenimports = ['webview.platforms.cocoa']
+elif sys.platform == 'win32':
+    platform_hiddenimports = ['webview.platforms.edgechromium', 'webview.platforms.winforms']
+else:
+    platform_hiddenimports = []
+
+all_datas = [
+    ('templates', 'templates'),
+    ('static', 'static'),
+]
 
 a = Analysis(
     ['run.py'],
     pathex=[],
     binaries=[],
-    datas=ctk_datas,
-    hiddenimports=[],
+    datas=all_datas,
+    hiddenimports=platform_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
         'matplotlib', 'numpy', 'scipy', 'pandas', 'PIL',
-        'tkinter.test', 'unittest', 'xmlrpc', 'pydoc',
+        'tkinter', 'tkinter.test', 'unittest', 'xmlrpc', 'pydoc',
     ],
     noarchive=False,
     optimize=0,

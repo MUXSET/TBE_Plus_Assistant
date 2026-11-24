@@ -1,297 +1,222 @@
 # =================================================================
 #  channel_sweep.py
-#  Version: 2.1.0
-#  Description: 频道扫描点赞模块（新通道版）。
-#               改用全新的 pubacc_v2 公众号接口，免装配 groupId，
-#               直接使用频道 ID 拉取文章列表，彻底解决 0 篇文章问题。
+#  Version: 2.3.0
+#  Description: 频道扫描点赞模块（统一客户端 + 账号快照隔离版）。
+#               - 基于 tbea_client 统一会话与防置顶截断拉取
+#               - 显式透传目标 username，杜绝切号/并发串号写回
+#               - 修复部分自定义日期误覆盖全月统计大盘的隐患
 # =================================================================
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-import time
-from datetime import datetime
 import threading
-from typing import List, Dict, Tuple
-from logger import logger
+from datetime import datetime
+from typing import Callable, Dict, Optional, Tuple
+import requests
+
 import config_manager
+import http_utils
 import liked_cache
+import tbea_client
+from logger import logger
 
-PUBACC_ARTICLE_API_URL = "https://ejia.tbea.com/pubacc_v2/api/card/getArticleList"
-CHECK_LOGIN_URL = "https://ejia.tbea.com/space/c/rest/user/checkLogin"
-ARTICLE_DETAIL_API_URL = "https://tbeanews.tbea.com/api/article/detail"
-LIKE_API_URL = "https://tbeanews.tbea.com/api/article/addDigg"
+AuthExpiredError = tbea_client.AuthExpiredError
+CookiesExpiredError = tbea_client.AuthExpiredError
 
-class CookiesExpiredError(Exception):
-    """当 API 返回 401 时抛出，通知调用者需要刷新 Cookies"""
-    pass
 
-def _get_channel_articles(session: requests.Session, channel_id: str,
-                          start_date: str, end_date: str) -> List[Dict]:
-    """
-    获取指定频道、指定日期范围的推送文章。
-    start_date/end_date 格式: "YYYY-MM-DD"
-    """
-    all_articles = []
-    
-    for page in range(1, 20):  # 最多翻 20 页
-        data = {
-            "ids": f'["{channel_id}"]',
-            "source": "1",
-            "pageIndex": str(page),
-            "pageSize": "20"
-        }
-        
-        try:
-            r = session.post(PUBACC_ARTICLE_API_URL, data=data, timeout=15)
-            
-            # PubAcc API 如果会话过期可能不直接 401，也可能返回特殊的 code，
-            # 这里保守判断
-            if r.status_code == 401:
-                raise CookiesExpiredError("Session Cookies 已过期 (401)")
-            
-            r.raise_for_status()
-            resp = r.json()
-            # print(f"DEBUG resp: {resp}") # For manual debugging if needed
-            if not resp.get("success", False) and str(resp.get("errorCode", "")) != "200":
-                err_code = str(resp.get("errorCode", ""))
-                err_msg = str(resp.get("error", ""))
-                if err_code == "401" or "登录身份信息已过有效期" in err_msg:
-                    raise CookiesExpiredError(f"Session Cookies 已过期 (API报错: {err_msg})")
-                
-                logger.error(f"❌ [频道扫描] API 返回异常状态: {err_msg} | Raw: {str(resp)[:100]}")
-                break
-                
-            # data 直接是个列表
-            articles_list = resp.get("data", [])
-            
-            if not articles_list:
-                break
-                
-            page_articles = []
-            for item in articles_list:
-                # pubacc_v2 返回的是 UUID (eg. 403ade1d-af2f-4eb6-b8dd-0e7ed13bde00)
-                # 但 tbeanews API 需要的是纯数字 ID (eg. 11947)
-                # 这个数字 ID 藏在 url 里: https://tbeanews.tbea.com/pc/show?id=11947&appid=...
-                art_id = None
-                url = item.get("url", "")
-                if url:
-                    import re
-                    m = re.search(r'[?&]id=(\d+)', url)
-                    if m:
-                        art_id = int(m.group(1))
-                
-                # 如果没有提取到数字 ID，退而求其次用 UUID（虽然后续可能会报错）
-                if not art_id:
-                    art_id = item.get("id") or item.get("yzj_id")
-                    
-                title = item.get("title", "")
-                
-                # pubacc_v2 API 提供 publishTimeStamp (毫秒)
-                pub_ts = item.get("publishTimeStamp") or item.get("sendTime")
-                if pub_ts:
-                    try:
-                        send_time = datetime.fromtimestamp(pub_ts / 1000.0).strftime("%Y-%m-%d %H:%M:%S")
-                    except Exception:
-                        send_time = item.get("publishTime", "2000-01-01 00:00:00")
-                else:
-                    send_time = item.get("publishTime", "2000-01-01 00:00:00")
-                
-                if art_id and title:
-                    page_articles.append({
-                        "id": art_id,
-                        "title": title,
-                        "send_time": str(send_time)
-                    })
-            
-            
-            # 过滤日期范围内的文章
-            for a in page_articles:
-                send_date = a["send_time"][:10]  # "YYYY-MM-DD"
-                if start_date <= send_date <= end_date:
-                    all_articles.append(a)
-            
-            # 如果所有消息都早于开始日期，停止翻页
-            earliest_date = min((a["send_time"][:10] for a in page_articles), default="9999")
-            if earliest_date < start_date:
-                break
-                
-            if len(articles_list) < 20:
-                break
-                
-            time.sleep(0.5)
-            
-        except CookiesExpiredError:
-            raise
-        except Exception as e:
-            logger.error(f"❌ [频道扫描] 获取频道历史文章失败: {e}")
-            break
-            
-    return all_articles
-
-def run_sweep(start_date: str = None, end_date: str = None,
-              stop_event: threading.Event = None, dry_run: bool = False) -> Tuple[int, int, int]:
+def run_sweep(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    stop_event: Optional[threading.Event] = None,
+    dry_run: bool = False,
+    username: Optional[str] = None,
+    progress_cb: Optional[Callable[[Dict], None]] = None,
+) -> Tuple[int, int, int]:
     """
     执行频道文章扫描点赞。
-    
+
     Args:
         dry_run: 若为 True，则仅统计文章总数，不访问详情页且不点赞
-        
+        username: 显式锁定的账号用户名；缺省时回退当前激活账号
+        progress_cb: 实时进度回调函数
+
     Returns:
         (总文章数, 新点赞数, 跳过数)
-        总文章数=-1 表示 Cookies 过期
+        总文章数 == -1 表示登录凭据(Cookies 或 Token)已过期，调用方应刷新后重试
     """
+    now = datetime.now()
+    month_start = now.strftime("%Y-%m-01")
+    today_str = now.strftime("%Y-%m-%d")
+
     if not start_date:
-        start_date = datetime.now().strftime("%Y-%m-01")
+        start_date = month_start
     if not end_date:
-        end_date = datetime.now().strftime("%Y-%m-%d")
-    
-    if dry_run:
-        logger.info(f"🔄 [频道扫描-干跑] 仅统计日期范围文章数: {start_date} ~ {end_date}")
-    else:
-        logger.info(f"🔄 [频道扫描] 扫描日期范围: {start_date} ~ {end_date}")
-    
-    tbea_token = config_manager.get_token()
-    ejia_cookies = config_manager.get_ejia_cookies()
-    
-    if not tbea_token or not ejia_cookies:
-        logger.error("❌ [频道扫描] 凭据不足，请先更新 Token。")
+        end_date = today_str
+
+    target_user = username or config_manager.get_credentials()[0]
+    if not target_user:
+        logger.error("❌ [频道扫描] 凭据不足，请先在设置中配置账号。")
         return 0, 0, 0
 
-    try:
-        probe = requests.post(CHECK_LOGIN_URL, cookies=ejia_cookies,
-                              headers={"Content-Length": "0"}, timeout=10)
-        if probe.status_code == 401:
-            logger.warning("⚠️ [频道扫描] Session 已过期，需要重新登录。")
-            return -1, 0, 0
-    except Exception:
-        pass
-    
-    target_channels = config_manager.get_channels()
-    
-    retry = Retry(connect=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
-    adapter = HTTPAdapter(max_retries=retry)
-    
-    pub_session = requests.Session()
-    pub_session.mount('https://', adapter)
-    pub_session.cookies.update(ejia_cookies)
-    pub_session.headers.update({
-        "User-Agent": "Mozilla/5.0",
-        "X-Requested-With": "XMLHttpRequest",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Origin": "https://ejia.tbea.com",
-        "Referer": "https://ejia.tbea.com/im/xiaoxi/",
-    })
-    
-    news_session = requests.Session()
-    news_session.mount('https://', adapter)
-    news_session.headers.update({"User-Agent": "Mozilla/5.0", "token": tbea_token})
+    if dry_run:
+        logger.info(f"🔄 [频道扫描-干跑] ({target_user}) 仅统计日期范围文章数: {start_date} ~ {end_date}")
+    else:
+        logger.info(f"🔄 [频道扫描] ({target_user}) 扫描日期范围: {start_date} ~ {end_date}")
 
-    # [修复]: 终端安全管理系统/防勒索网络拦截绕过
+    tbea_token = config_manager.get_token(username=target_user)
+    ejia_cookies = config_manager.get_ejia_cookies(username=target_user)
+
+    if not ejia_cookies or (not dry_run and not tbea_token):
+        _, password = config_manager.get_credentials(username=target_user)
+        if password:
+            logger.warning(f"⚠️ [频道扫描] ({target_user}) 尚未缓存有效凭据，准备触发自动登录。")
+            return -1, 0, 0
+        logger.error("❌ [频道扫描] 凭据不足，请先在设置中配置账号。")
+        return 0, 0, 0
+
     if config_manager.get_disable_system_proxy():
         logger.info("🛡️ [频道扫描] 已启用环境代理绕过 (强制直连)")
-        empty_proxy = {"http": "", "https": "", "all": ""}
-        pub_session.proxies.update(empty_proxy)
-        news_session.proxies.update(empty_proxy)
 
-    all_articles = []
-    
-    try:
-        for ch in target_channels:
-            if stop_event and stop_event.is_set():
-                logger.info("⏹️ [频道扫描] 收到停止信号。")
-                return 0, 0, 0
-                
-            ch_id = ch['id']  # 直接使用频道自身ID，不再需要拼接 userId
-            logger.info(f"📡 [频道扫描] 拉取频道 [{ch['name']}]...")
-            arts = _get_channel_articles(pub_session, ch_id, start_date, end_date)
-            all_articles.extend(arts)
-            logger.info(f"    ↳ 找到 {len(arts)} 篇对应日期范围文章")
-    except CookiesExpiredError:
-        logger.warning("⚠️ [频道扫描] Cookies 已过期。")
+    session_ok = http_utils.check_ejia_session_valid(ejia_cookies)
+    if session_ok is False:
+        logger.warning("⚠️ [频道扫描] Session Cookies 已过期，需要刷新凭据。")
         return -1, 0, 0
-        
-    unique = list({a['id']: a for a in all_articles}.values())
-    unique.sort(key=lambda x: x['send_time'])
-    
-    total = len(unique)
-    
-    if dry_run:
-        logger.info(f"📋 [频道扫描-干跑] 本月共有 {total} 篇文章（去重后）。直接返回。")
-        config_manager.update_monthly_total_only(total)
-        return total, 0, 0
-    
-    logger.info(f"📋 [频道扫描] 共有 {total} 篇文章（去重后），开始检查点赞状态...")
-    
-    if total == 0:
-        logger.info("ℹ️ [频道扫描] 暂无文章需要处理。")
-        return 0, 0, 0
-        
-    liked_count = 0
-    skipped_count = 0
-    
-    for art in unique:
+
+    if not dry_run:
+        token_ok = http_utils.check_token_valid(tbea_token)
+        if token_ok is False:
+            logger.warning("⚠️ [频道扫描] 新闻 Token 已过期，需要刷新凭据。")
+            return -1, 0, 0
+
+    target_channels = config_manager.get_channels()
+
+    with tbea_client.create_pubacc_session(ejia_cookies) as pub_session, \
+            tbea_client.create_news_session(tbea_token) as news_session:
+        try:
+            unique = tbea_client.fetch_all_channels_articles(
+                pub_session,
+                target_channels,
+                start_date,
+                end_date,
+                stop_event=stop_event,
+                progress_cb=progress_cb,
+            )
+        except tbea_client.AuthExpiredError:
+            logger.warning("⚠️ [频道扫描] Cookies 已过期。")
+            return -1, 0, 0
+
         if stop_event and stop_event.is_set():
             logger.info("⏹️ [频道扫描] 收到停止信号。")
-            break
-            
-        art_id = art['id']
-        title = art['title'][:20]
-        display = f"「{title}」(ID:{art_id})"
-        
-        if liked_cache.is_liked(art_id):
-            logger.info(f"💨 [频道扫描] 本地已记录，跳过: {display}")
-            skipped_count += 1
-            continue
-        
+            return 0, 0, 0
+
+        total = len(unique)
+
+        if dry_run:
+            cached_liked = sum(1 for a in unique if liked_cache.is_liked(a["id"], username=target_user))
+            logger.info(f"📋 [频道扫描-干跑] ({target_user}) 本月共有 {total} 篇文章（本地已记录已赞 {cached_liked} 篇）。")
+            config_manager.update_monthly_total_only(total, min_liked=cached_liked, username=target_user)
+            return total, 0, 0
+
+        logger.info(f"📋 [频道扫描] 共有 {total} 篇文章（去重后），开始检查点赞状态...")
+
+        if total == 0:
+            logger.info("ℹ️ [频道扫描] 暂无文章需要处理。")
+            config_manager.save_sweep_stats(0, 0, 0, username=target_user)
+            if start_date == month_start and end_date >= today_str:
+                config_manager.save_monthly_stats(0, 0, username=target_user)
+            return 0, 0, 0
+
+        liked_count = 0
+        skipped_count = 0
+        pending_flush = 0
+        auth_expired = False
+
         try:
-            detail_res = news_session.get(ARTICLE_DETAIL_API_URL, params={'id': art_id}, timeout=10)
-            detail_res.raise_for_status()
-            d_data = detail_res.json()
-            
-            if d_data.get('code') == 1 and d_data.get('data'):
-                is_digg = d_data['data'].get("is_digg", True)
-                if is_digg:
-                    logger.info(f"⏭️ [频道扫描] 服务端已赞，跳过: {display}")
-                    liked_cache.mark_liked(art_id)
+            for idx, art in enumerate(unique, 1):
+                if stop_event and stop_event.is_set():
+                    logger.info("⏹️ [频道扫描] 收到停止信号。")
+                    break
+
+                art_id = art["id"]
+                title = art["title"][:22]
+                display = f"「{title}」(ID:{art_id})"
+
+                if progress_cb:
+                    progress_cb({
+                        "stage": "like",
+                        "channel": art.get("channel", ""),
+                        "current": idx,
+                        "total": total,
+                        "liked": liked_count,
+                        "skipped": skipped_count,
+                        "message": f"({idx}/{total}) {title}",
+                    })
+
+                if liked_cache.is_liked(art_id, username=target_user):
+                    logger.info(f"💨 [频道扫描] 本地已记录，跳过: {display}")
                     skipped_count += 1
-                else:
-                    logger.info(f"🌟 [频道扫描] 发现漏赞，点赞中: {display}")
-                    like_res = news_session.post(LIKE_API_URL, json={"id": str(art_id)}, timeout=10)
-                    like_data = like_res.json()
-                    
-                    if like_data.get("code") == 1:
-                        liked_cache.mark_liked(art_id)
-                        logger.info(f"✅ [频道扫描] {display} 点赞成功！")
-                        liked_count += 1
-                    elif "重复" in like_data.get('msg', ''):
-                        liked_cache.mark_liked(art_id)
-                        logger.info(f"✅ [频道扫描] {display} 已点赞（重试响应）")
-                        skipped_count += 1
+                    continue
+
+                try:
+                    d_data = tbea_client.get_article_detail(news_session, art_id)
+
+                    if d_data.get("code") == 1 and d_data.get("data"):
+                        is_digg = d_data["data"].get("is_digg", True)
+                        if is_digg:
+                            logger.info(f"⏭️ [频道扫描] 服务端已赞，跳过: {display}")
+                            liked_cache.mark_liked(art_id, username=target_user, flush=False)
+                            pending_flush += 1
+                            skipped_count += 1
+                        else:
+                            logger.info(f"🌟 [频道扫描] 发现未赞，点赞中: {display}")
+                            like_data = tbea_client.like_article(news_session, art_id)
+
+                            if like_data.get("code") == 1:
+                                liked_cache.mark_liked(art_id, username=target_user, flush=False)
+                                pending_flush += 1
+                                logger.info(f"✅ [频道扫描] {display} 点赞成功！")
+                                liked_count += 1
+                            elif "重复" in str(like_data.get("msg", "")) or "已点" in str(like_data.get("msg", "")):
+                                liked_cache.mark_liked(art_id, username=target_user, flush=False)
+                                pending_flush += 1
+                                logger.info(f"✅ [频道扫描] {display} 已点赞（服务端确认）")
+                                skipped_count += 1
+                            else:
+                                logger.error(f"❌ [频道扫描] {display} 点赞失败: {like_data.get('msg')}")
                     else:
-                        logger.error(f"❌ [频道扫描] {display} 点赞失败: {like_data.get('msg')}")
-            else:
-                logger.warning(f"⚠️ [频道扫描] 无法获取文章详情: {art_id}")
-                
-        except requests.exceptions.RequestException as re:
-            err_msg = str(re)
-            if "10013" in err_msg or "10054" in err_msg or "Connection aborted" in err_msg:
-                logger.error(f"❌ [频道扫描] 网络被强行阻断 (10013/10054)。")
-                logger.info("ℹ️ [提示] 这通常是由于企业终端安全软件(如深信服/火绒企业版)拦截了请求。")
-                logger.info("ℹ️ [提示] 请在『设置』中开启「强制直连」重试。")
-            else:
-                logger.error(f"❌ [频道扫描] 网络请求异常: {type(re).__name__} - 请检查网络。")
-                
-        except Exception as e:
-            logger.error(f"❌ [频道扫描] 处理 {display} 时发生未知错误: {e}")
-            
-        time.sleep(1.0)
-        
-    logger.info(f"🎉 [频道扫描] 完成！共 {total} 篇: 新点赞 {liked_count}，跳过 {skipped_count}。")
-    logger.info(f"💾 [频道扫描] 本地缓存已记录 {liked_cache.get_cache_size()} 篇文章。")
-    
-    config_manager.save_sweep_stats(total, liked_count, skipped_count)
-    if start_date == datetime.now().strftime("%Y-%m-01"):
-        config_manager.save_monthly_stats(total, liked_count + skipped_count)
-        
-    return total, liked_count, skipped_count
+                        logger.warning(f"⚠️ [频道扫描] 无法获取文章详情: {display} ({d_data.get('msg', '未知响应')})")
+
+                except tbea_client.AuthExpiredError as auth_err:
+                    logger.warning(f"⚠️ [频道扫描] {auth_err}，触发凭据刷新。")
+                    auth_expired = True
+                    return -1, 0, 0
+                except requests.exceptions.RequestException as req_err:
+                    err_msg = str(req_err)
+                    if "10013" in err_msg or "10054" in err_msg or "Connection aborted" in err_msg:
+                        logger.error("❌ [频道扫描] 网络被强行阻断 (10013/10054)。")
+                        logger.info("ℹ️ [提示] 请确认『设置』中已开启「强制直连 (绕过代理/安全软件)」。")
+                    else:
+                        logger.error(f"❌ [频道扫描] 网络请求异常: {type(req_err).__name__} - 请检查网络连接。")
+                except Exception as e:
+                    logger.error(f"❌ [频道扫描] 处理 {display} 时发生未知错误: {e}")
+
+                if pending_flush >= 5:
+                    liked_cache.flush()
+                    pending_flush = 0
+
+                if tbea_client.sleep_interruptible(0.6, stop_event):
+                    logger.info("⏹️ [频道扫描] 收到停止信号。")
+                    break
+        finally:
+            liked_cache.flush()
+
+        if auth_expired:
+            return -1, 0, 0
+
+        logger.info(f"🎉 [频道扫描] 完成！共 {total} 篇: 新点赞 {liked_count}，跳过 {skipped_count}。")
+        logger.info(f"💾 [频道扫描] 账号 ({target_user}) 本地缓存共记录 {liked_cache.get_cache_size(username=target_user)} 篇文章。")
+
+        config_manager.save_sweep_stats(total, liked_count, skipped_count, username=target_user)
+        # 仅当完整扫描了本月月初至今天（及以后）且未被中途中断时，才更新当月大盘
+        if start_date == month_start and end_date >= today_str and not (stop_event and stop_event.is_set()):
+            config_manager.save_monthly_stats(total, liked_count + skipped_count, username=target_user)
+
+        return total, liked_count, skipped_count

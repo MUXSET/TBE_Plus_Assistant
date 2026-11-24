@@ -1,6 +1,9 @@
-# TBE+ 阅赞助手 (TBE+ News Assistant) v2.2.1
+# TBE+ 阅赞助手 (TBE+ News Assistant) v2.3.0
 
-![版本](https://img.shields.io/badge/version-2.2.1-blue.svg) ![语言](https://img.shields.io/badge/language-Python-green.svg) ![作者](https://img.shields.io/badge/author-MUXSET-orange.svg) ![协议](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+![版本](https://img.shields.io/badge/version-2.3.0-blue.svg) ![语言](https://img.shields.io/badge/language-Python-green.svg) ![作者](https://img.shields.io/badge/author-MUXSET-orange.svg) ![协议](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+
+> **🚀 v2.3.0 原生 WebView 架构重构、自愈引擎与界面焕新！**
+> 全面升级为 `pywebview` 原生桌面窗口 + 桌面/移动双端统一现代 SPA，新增核心控制器解耦、三级无头浏览器自愈引擎、全链路强制直连代理绕过、双端登录态自动续期、置顶旧文章防漏扫，以及支持账号切换、增量日志与 CSV 下载的 Web 远程控制。
 
 > **🚀 v2.2.1 修复升级！**
 > 修复了多账号协同使用时产生的缓存污染与交叉覆盖问题，为界面增加了挂机期间的账号保护锁，保障多账号全自动值守安全。
@@ -14,45 +17,30 @@
 
 ## ✨ 核心亮点特性
 
-### :computer: 全新 GUI 仪表板
-- 现代化桌面界面（基于 CustomTkinter）
-- 实时统计卡片：本月文章数 / 已点赞 / 上次扫描时间 / Token 状态
-- 支持 System / Dark / Light 主题切换
+### :computer: 原生 WebView 现代化桌面仪表板
+- 基于 `pywebview`（macOS WKWebView / Windows Edge WebView2）+ 统一响应式 SPA，告别旧版 Tcl/Tk 渲染限制
+- 深色（Obsidian Slate）/ 浅色（Porcelain）/ 自动双主题平滑切换并持久化保存
+- 4 项实时统计卡片：本月文章 / 本月点赞（含动态 SVG 环形进度圈）/ 上次扫描（含自动挂机倒计时）/ 凭据状态（支持点击实时校验）
+- 扫描区配备丝滑滑动胶囊预设与实时任务进度抽屉；运行动态支持关键词搜索、按「全部 / 新赞 / 警告与错误」过滤、语义徽章渲染与增量防抢滚动
+- 独立的「账号管理」与「偏好设置」全页视图，覆盖账号改密、缓存清理、调度策略、Web 面板口令与频道管理
 
-### :rocket: 全新驱动引擎 (v2.0.3)
-- 彻底**抛弃封号/失效的旧版 IM 聊天历史抓取接口**，底层全面重写
-- 全流量切换至官方专属的 `pubacc_v2` 高速公众号拉列表接口
-- 网络抓取速度翻倍，登录凭据获取时间缩短 60%
-- 精准正则提取底层 5 位数数字 ID，对接旧版点赞服务器不断连
+### :rocket: 稳定抓取与自愈引擎
+- 统一采用 `pubacc_v2` 公众号列表接口与 `tbea_client` 客户端，避免重复逻辑并确保连接资源释放
+- 三级无头浏览器启动容错：优先加载内置内核，缺失时自动切换本机 Chrome / Edge，非打包环境下支持自动下载修复
+- 识别单篇置顶旧文章，防止历史文章翻页提前截断
 
 ### :calendar: 按日期范围扫描
-- 内置预设：**今天 / 昨天 / 最近3天 / 本周 / 本月 / 上月**
-- 支持自定义日期范围，精确补赞历史文章
-- 替代旧版 ID 递增盲扫，更高效更精准
+- 分段预设：**今天 / 最近3天 / 本周 / 本月 / 上月 / 自定义**
+- 支持自定义起始与结束日期，带内联校验提示
 
 ### :iphone: 手机远程控制（Web 面板）
-- 启动后自动开放 `http://局域网IP:5050`
-- 手机浏览器即可远程触发扫描、导出报告、刷新 Token
-- 暗色毛玻璃风格 UI，移动端自适应
+- 启动后默认提供本机与局域网 Web 访问入口，桌面侧边栏可一键复制地址或打开浏览器
+- 支持多账号切换、实时扫描进度同步、增量日志刷新、启停自动挂机及远程下载最新月报 CSV
+- 支持设置可选访问口令（PIN）与仅本机/局域网访问模式
 
-### 📦 本地智能缓存
-- 点赞成功后自动记录到本地缓存（`liked_articles.json`）
-- 再次扫描时自动跳过已赞文章，大幅减少 API 请求
-- **严格策略**：仅 API 确认成功才写入缓存，绝不误判
-
-### 👥 多账号管理
-- 支持添加 / 切换 / 删除多个账号
-- 每个账号独立的扫描统计和配置
-- 一键侧边栏切换，无需重启
-
-### 🔑 Token 实时校验
-- 每 5 分钟通过 API 真实验证 Token 有效性
-- 替代旧版估算倒计时，状态显示更准确
-- Token 失效时自动调用浏览器模块刷新
-
-### :bar_chart: 月报导出
-- 一键导出本月点赞数据为 CSV 报告
-- 详细记录每篇文章的点赞状态
+### 📦 多账号与本地智能缓存
+- 线程安全的多账号配置与缓存存储，按账号名称显式隔离，支持多账号依次轮询自动挂机
+- 仅在服务端确认点赞或已赞后写入缓存，支持批量落盘与按账号一键清空缓存
 
 ---
 
@@ -60,20 +48,38 @@
 
 ```
 TBNEWS_Liker/
-├── run.py                # 应用入口
-├── gui_app.py            # GUI 主界面（仪表板）
-├── channel_sweep.py      # 频道引擎（v2版重构：支持 pubacc_v2）
-├── liked_cache.py        # 本地点赞缓存
-├── web_panel.py          # Web 远程控制面板 (Flask)
-├── config_manager.py     # 配置中心（多账号/频道/频率）
-├── get_token.py          # Token 自动获取（Playwright无头浏览器）
+├── run.py                # 应用入口（原生环境检测与启动）
+├── desktop_app.py        # pywebview 原生桌面窗口与系统桥接 (DesktopBridge)
+├── gui_app.py            # GUI 兼容入口
+├── app_controller.py     # 核心状态机与后台任务协调器
+├── tbea_client.py        # TBEA 统一接口客户端
+├── http_utils.py         # HTTP 会话重试、强制直连与探活工具
+├── channel_sweep.py      # 频道扫描与自动点赞执行模块
+├── report_exporter.py    # 月报 CSV 导出与状态回写模块
+├── liked_cache.py        # 线程安全的账号隔离点赞缓存
+├── config_manager.py     # 线程安全的配置管理中心
+├── get_token.py          # Token 获取模块（三级浏览器自愈）
 ├── task_manager.py       # 后台定时任务调度器
-├── report_exporter.py    # 月报 CSV 导出（v2版重构）
-├── logger.py             # 日志系统
-├── app_context.py        # 路径上下文管理
-├── config.json           # 用户配置（自动生成）
-├── liked_articles.json   # 点赞缓存（自动生成）
-└── requirements.txt      # 依赖清单
+├── web_panel.py          # 双监听 Web 服务（桌面回环 + 可选局域网远程 API）
+├── logger.py             # 全局日志管理
+├── app_context.py        # 路径与打包资源上下文管理
+├── templates/app.html    # 桌面与移动端统一 SPA 页面模板
+├── static/               # 前端现代 CSS 样式与交互脚本
+├── android/              # 独立原生 Android App (Kotlin + Jetpack Compose)
+└── requirements.txt      # 依赖清单（pywebview / playwright / requests / flask）
+```
+
+### Android 独立客户端构建 (`android/`)
+
+本项目内置独立运行的原生 Android 客户端（最低支持 Android 8.0 / API 26，不依赖电脑端），通过内置 `WebView` + `CookieManager` 捕获登录凭据，并利用 `WorkManager` 实现后台定时自动补赞与通知提醒：
+
+```bash
+cd android
+./gradlew assembleDebug
+# Debug APK:   android/app/build/outputs/apk/debug/app-debug.apk
+
+./gradlew assembleRelease
+# Release APK: android/app/build/outputs/apk/release/app-release.apk
 ```
 
 ---
@@ -124,6 +130,13 @@ python run.py
 ---
 
 ## 📋 版本历史
+
+### v2.3.0 (2026-11-24) — 原生 WebView 重构、自愈引擎与界面焕新
+- 🎨 **彻底重构桌面与移动端统一 UI**：告别旧版 Tkinter/CustomTkinter，升级为 `pywebview` 原生桌面窗口 + 现代深/浅双主题 SPA（`templates/app.html`、`static/`），采用矢量 SVG 图标、环形完成率进度圈、滑动分段胶囊、结构化日志徽章与检索过滤，彻底解决跨平台渲染模糊与控件抽搐截断问题。
+- 📱 **双监听服务与 Web 远程控制升级**：桌面窗口通过独立 `127.0.0.1` 随机端口 + 启动令牌免密连接（不受局域网端口配置影响）；远程面板支持可选 PIN 口令鉴权、多账号切换、增量日志游标、同步实时进度条与远程下载最新月报 CSV；增强端口冲突预探测。
+- 🤖 **新增独立原生 Android 客户端 (`android/`)**：基于 Kotlin + Jetpack Compose + Material 3 构建（支持 Android 8.0+ 独立运行），内置 `WebView` 登录捕获（支持错误拦截重试与多路径 Cookie 聚合）、`WorkManager` 后台定时自动补赞、多账号隔离以及月报 CSV 导出分享。
+- 🧩 **核心架构解耦与线程安全加固**：引入 `app_controller.py`、`desktop_app.py` 与 `tbea_client.py` 统一状态机和接口客户端；为 `config_manager` 与 `liked_cache` 加入 `RLock`、线程隔离原子写盘、`0600` 文件权限与显式账号参数透传，消除跨账号串写风险；修复自定义日期覆盖全月统计问题；新增「多账号依次轮询挂机」选项。
+- 🛡️ **三级无头浏览器自愈与全链路直连**：当 `ms-playwright` 系统缓存被清理时，自动切换本机 Chrome / Edge 无头内核或后台修复下载；统一 `http_utils` 代理绕过与双端过期自动续期；修复频道置顶旧文章导致翻页提前截断漏扫与启停并发竞态问题。
 
 ### v2.2.1 (2026-03-31) — 稳定守护升级
 - 🐛 **多账号数据隔离优化**：对本地点赞缓存机制进行彻底重构，实现多账号独立的沙盒化隔离。修正在切换不同账号后，本地大盘数据存在读取交叉的历史遗留 bug。兼容老版本数组数据结构，首次联网会自动无缝归入当前操作者沙箱中。
